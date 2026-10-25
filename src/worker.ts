@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { boss, startQueue } from './queues/build-queue';
+
 import { simpleGit } from 'simple-git';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
@@ -11,6 +11,12 @@ import { eq, sql } from 'drizzle-orm';
 import { DEPLOYMENTS_DIR } from './paths';
 
 type Logger = ReturnType<typeof createLogger>;
+
+type BuildConfig = {
+  installCommand: string;
+  buildCommand: string;
+  outputDir: string;
+};
 
 // Buffers log text and appends it to deployments.logs in batches, in order.
 function createLogger(deploymentId: string) {
@@ -54,31 +60,52 @@ function createLogger(deploymentId: string) {
   };
 }
 
-function buildInDocker(srcDir: string, outDir: string, log: Logger): Promise<void> {
+// Commands are passed as environment variables, not pasted into the script,
+// so quotes or $(...) in a user's command can't break out of the wrapper.
+function buildInDocker(
+  srcDir: string,
+  outDir: string,
+  cfg: BuildConfig,
+  log: Logger
+): Promise<void> {
   return new Promise((resolve, reject) => {
-    const script = [
-      'cp -r /src/. /tmp/app',
-      'cd /tmp/app',
-      'npm install --include=dev --ignore-scripts',
-      'npm run build',
-      '(cp -r dist/. /out 2>/dev/null || cp -r build/. /out)',
-    ].join(' && ');
+    const script = `
+set -e
+mkdir -p /tmp/app
+cp -r /src/. /tmp/app
+cd /tmp/app
+
+echo "$ $INSTALL_CMD"
+sh -c "$INSTALL_CMD"
+
+echo "$ $BUILD_CMD"
+sh -c "$BUILD_CMD"
+
+if [ ! -d "$OUTPUT_DIR" ]; then
+  echo "✖ Output folder '$OUTPUT_DIR' was not created by the build"
+  exit 1
+fi
+cp -r "$OUTPUT_DIR"/. /out
+`;
 
     const args = [
       'run', '--rm',
       '--memory', '1g',
       '--cpus', '1',
+      '--pids-limit', '512',
       '--user', `${process.getuid?.() ?? 1000}:${process.getgid?.() ?? 1000}`,
       '-e', 'HOME=/tmp',
       '-e', 'NODE_ENV=production',
+      '-e', `INSTALL_CMD=${cfg.installCommand}`,
+      '-e', `BUILD_CMD=${cfg.buildCommand}`,
+      '-e', `OUTPUT_DIR=${cfg.outputDir}`,
       '-v', `${srcDir}:/src:ro`,
       '-v', `${outDir}:/out`,
       'node:22-alpine',
-      'sh', '-c', `mkdir -p /tmp/app && ${script}`,
+      'sh', '-c', script,
     ];
 
     console.log('\n[BUILD] Running build in Docker...');
-    log.write('$ docker run node:22-alpine (npm install && npm run build)');
     const child = spawn('docker', args);
 
     const timer = setTimeout(() => {
@@ -100,59 +127,90 @@ function buildInDocker(srcDir: string, outDir: string, log: Logger): Promise<voi
     child.on('close', (code) => {
       clearTimeout(timer);
       if (code === 0) resolve();
-      else reject(new Error(`Docker build failed with exit code ${code}`));
+      else reject(new Error(`Build failed with exit code ${code}`));
     });
   });
 }
 
+// Atomically claims the oldest pending deployment
+async function claimNext() {
+  const [job] = await db
+    .update(deployments)
+    .set({ status: 'building', updatedAt: new Date() })
+    .where(
+      eq(
+        deployments.id,
+        sql`(SELECT id FROM deployments WHERE status = 'pending' ORDER BY created_at LIMIT 1)`
+      )
+    )
+    .returning();
+  return job;
+}
+
+async function runBuild(job: typeof deployments.$inferSelect) {
+  const deploymentId = job.id;
+  const srcDir = path.join(os.tmpdir(), 'builds', deploymentId);
+  const outDir = path.join(DEPLOYMENTS_DIR, deploymentId, 'public');
+  const log = createLogger(deploymentId);
+
+  console.log(`\n🚀 Starting build for deployment: ${deploymentId}`);
+
+  try {
+    await fs.rm(srcDir, { recursive: true, force: true });
+    await fs.mkdir(srcDir, { recursive: true });
+    await fs.rm(outDir, { recursive: true, force: true });
+    await fs.mkdir(outDir, { recursive: true });
+
+    log.write(`$ git clone --branch ${job.branch} --depth 1 ${job.repoUrl}`);
+    await simpleGit().clone(job.repoUrl, srcDir, ['--branch', job.branch, '--depth', '1']);
+
+    await buildInDocker(
+      srcDir,
+      outDir,
+      {
+        installCommand: job.installCommand,
+        buildCommand: job.buildCommand,
+        outputDir: job.outputDir,
+      },
+      log
+    );
+
+    log.write('✔ Build complete. Deployment is live.');
+    await log.close(); // flush BEFORE the status changes
+    await db.update(deployments).set({ status: 'active' }).where(eq(deployments.id, deploymentId));
+    console.log(`✅ Deployment ${deploymentId} successful!`);
+  } catch (error: any) {
+    console.error(`🚨 Deployment ${deploymentId} failed:`, error);
+    log.write(`✖ ${error?.message ?? 'Deployment failed'}`);
+    await log.close();
+    await db.update(deployments).set({ status: 'failed' }).where(eq(deployments.id, deploymentId));
+  } finally {
+    await fs.rm(srcDir, { recursive: true, force: true });
+  }
+}
+
 async function run() {
-  await startQueue();
+  // Crash recovery: a build left on "building" means the last worker died.
+  // Safe with ONE worker only.
+  await db
+    .update(deployments)
+    .set({ status: 'pending' })
+    .where(eq(deployments.status, 'building'));
 
-  await boss.work("build-jobs", async (jobs) => {
-    for (const job of jobs) {
-      const { deploymentId, repoUrl, branch } = job.data as {
-        deploymentId: string; repoUrl: string; branch: string;
-      };
-      const srcDir = path.join(os.tmpdir(), 'builds', deploymentId);
-      const outDir = path.join(DEPLOYMENTS_DIR, deploymentId, 'public');
-      const log = createLogger(deploymentId);
+  console.log('👷 Worker is polling for pending deployments...');
 
-      console.log(`\n🚀 Starting build for deployment: ${deploymentId}`);
-
-      try {
-        // reset logs so a retry/redeploy starts clean
-        await db.update(deployments)
-          .set({ status: 'building', logs: '' })
-          .where(eq(deployments.id, deploymentId));
-
-        await fs.rm(srcDir, { recursive: true, force: true });
-        await fs.mkdir(srcDir, { recursive: true });
-        await fs.rm(outDir, { recursive: true, force: true });
-        await fs.mkdir(outDir, { recursive: true });
-
-        console.log(`📦 Cloning ${repoUrl} (${branch})...`);
-        log.write(`$ git clone --branch ${branch || 'main'} --depth 1 ${repoUrl}`);
-        await simpleGit().clone(repoUrl, srcDir, ['--branch', branch || 'main', '--depth', '1']);
-
-        await buildInDocker(srcDir, outDir, log);
-
-        log.write('✔ Build complete. Deployment is live.');
-        await log.close(); // flush BEFORE the status changes
-        await db.update(deployments).set({ status: 'active' }).where(eq(deployments.id, deploymentId));
-        console.log(`✅ Deployment ${deploymentId} successful!`);
-
-      } catch (error: any) {
-        console.error(`🚨 Deployment ${deploymentId} failed:`, error);
-        log.write(`✖ ${error?.message ?? 'Deployment failed'}`);
-        await log.close();
-        await db.update(deployments).set({ status: 'failed' }).where(eq(deployments.id, deploymentId));
-      } finally {
-           await fs.rm(srcDir, { recursive: true, force: true });
+  while (true) {
+    try {
+      const job = await claimNext();
+      if (job) {
+        await runBuild(job);
+        continue; // look for more work right away
       }
+    } catch (err) {
+      console.error('Worker loop error:', err);
     }
-  });
-
-  console.log("👷 Worker is listening for build jobs...");
+    await new Promise((r) => setTimeout(r, 2000));
+  }
 }
 
 run().catch((err) => {

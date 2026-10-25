@@ -7,3 +7,4 @@ dist
 migration
 deployments
 deployments.log
+logs.log

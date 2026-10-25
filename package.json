@@ -14,6 +14,7 @@
     "@libsql/client": "^0.18.0",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@neondatabase/serverless": "^1.2.0",
+    "@pg-boss/dashboard": "^1.12.1",
     "@types/dotenv": "^6.1.1",
     "@types/pg": "^8.23.1",
     "@xterm/addon-fit": "^0.11.0",
@@ -28,7 +29,6 @@
     "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.23.1",
-    "pg-boss": "^12.38.0",
     "simple-git": "^4.0.2",
     "zod": "^4.6.7"
   },
