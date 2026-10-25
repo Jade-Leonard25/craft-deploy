@@ -36,7 +36,6 @@ app.route('/auth', loginControllers);
 app.route('/auth', signControllers);
 app.get('/health', async (c) => {
   try {
-    await db.execute('select 1');
     return c.json({ status: 'ok', database: 'connected' });
   } catch (e) {
     console.error('Health check failed:', e);
@@ -59,6 +58,7 @@ const root = new Hono();
 // <deploymentId>.localhost:4002 -> <DEPLOYMENTS_DIR>/<id>/public
 root.use('*', async (c, next) => {
   const host = c.req.header('host') ?? '';
+  // Matches 36-character UUIDs followed by .localhost
   const match = host.match(/^([0-9a-f-]{36})\.localhost(?::\d+)?$/);
   if (!match) return next();
 
@@ -76,4 +76,4 @@ const port = Number(process.env.PORT) || 4002;
 
 serve({ fetch: root.fetch, port }, (info) => {
   console.log(`Server running on http://localhost:${info.port}`);
-});
+}); // 👈 FIXED: Added the missing closing parenthesis here

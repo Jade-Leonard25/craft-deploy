@@ -1,42 +1,36 @@
-import {
-  pgTable, pgEnum, text, timestamp, uuid, varchar, index,
-} from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
-export const deploymentStatusEnum = pgEnum("deployment_status", [
-  "pending", "building", "active", "failed",
-]);
-
-export const sourceTypeEnum = pgEnum("source_type", ["zip", "github"]);
-
-export const users = pgTable("user_signup", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  username: varchar("username", { length: 255 }).notNull().unique(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  passwordHash: varchar("password", { length: 255 }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+export const users = sqliteTable("user_signup", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
 
-export const userData = pgTable("user_data", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
+export const userData = sqliteTable("user_data", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
     .notNull()
     .unique()
     .references(() => users.id, { onDelete: "cascade" }),
-  firstname: varchar("firstname", { length: 255 }),
-  lastname: varchar("lastname", { length: 255 }),
-  githubUser: varchar("github_user", { length: 255 }),
+  firstname: text("firstname"),
+  lastname: text("lastname"),
+  githubUser: text("github_user"),
   bio: text("bio"),
 });
 
-export const deployments = pgTable("deployments", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
+export const deployments = sqliteTable("deployments", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  projectName: varchar("project_name", { length: 255 }).notNull(),
-  status: deploymentStatusEnum("status").default("pending").notNull(),
-  sourceType: sourceTypeEnum("source_type").notNull(),
-  logs: text("logs").default("").notNull(), // 👈 THIS IS THE NEW COLUMN
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  projectName: text("project_name").notNull(),
+  status: text("status", { enum: ["pending", "building", "active", "failed"] }).default("pending").notNull(),
+  sourceType: text("source_type", { enum: ["zip", "github"] }).notNull(),
+  logs: text("logs").default("").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
+

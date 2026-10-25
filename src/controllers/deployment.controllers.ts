@@ -2,9 +2,10 @@ import { Hono } from "hono";
 import { verify } from "hono/jwt";
 import { HTTPException } from "hono/http-exception";
 import { zValidator } from "@hono/zod-validator";
+import { streamSSE } from "hono/streaming"; // 👈 Added for live logs
 import db from "../db";
 import { deployments } from "../schema/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm"; // 👈 Added 'and'
 import { createDeploymentSchema } from "../globals/globals.config.controllers";
 import { boss, startQueue } from "../queues/build-queue";
 
@@ -13,10 +14,8 @@ const deploymentControllers = new Hono<{
 }>();
 const jwtSecret = process.env.JWT_KEY || process.env.HEADER_BEARER;
 
-// Initialize queue when API starts (safe to call multiple times)
 startQueue();
 
-// Auth middleware: verifies the JWT and exposes the payload to handlers
 deploymentControllers.use("*", async (c, next) => {
   const authHeader = c.req.header("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
@@ -38,6 +37,7 @@ deploymentControllers.use("*", async (c, next) => {
   await next();
 });
 
+// Create deployment
 deploymentControllers.post(
   "/",
   zValidator("json", createDeploymentSchema),
@@ -46,7 +46,6 @@ deploymentControllers.post(
       const payload = c.get("jwtPayload");
       const { projectName, sourceType } = c.req.valid("json");
 
-      // Hardcoded for testing
       const repoUrl = "https://github.com/Jade-Leonard25/testing-deployments.git";
       const branch = "main";
 
@@ -81,7 +80,7 @@ deploymentControllers.post(
   }
 );
 
-// List the logged-in user's deployments, newest first
+// List deployments
 deploymentControllers.get("/", async (c) => {
   const payload = c.get("jwtPayload");
   const rows = await db
@@ -92,4 +91,66 @@ deploymentControllers.get("/", async (c) => {
   return c.json({ success: true, data: rows });
 });
 
+// 👇 NEW: Get a single deployment by ID
+deploymentControllers.get("/:id", async (c) => {
+  const payload = c.get("jwtPayload");
+  const deploymentId = c.req.param("id");
+
+  const [deployment] = await db
+    .select()
+    .from(deployments)
+    .where(
+      and(
+        eq(deployments.id, deploymentId),
+        eq(deployments.userId, payload.sub)
+      )
+    );
+
+  if (!deployment) {
+    return c.json({ success: false, message: "Deployment not found" }, 404);
+  }
+
+  return c.json({ success: true, data: deployment });
+});
+
+// 👇 NEW: Live logs SSE stream
+// 👇 NEW: Live logs SSE stream
+deploymentControllers.get("/:id/logs", async (c) => {
+  const deploymentId = c.req.param("id");
+
+  return streamSSE(c, async (stream) => {
+    let lastSentLogs: string | null = null;
+    let lastSentStatus: string | null = null;
+
+    while (true) {
+      const [deployment] = await db
+        .select({ logs: deployments.logs, status: deployments.status })
+        .from(deployments)
+        .where(eq(deployments.id, deploymentId));
+
+      if (!deployment) {
+        await stream.writeSSE({ data: JSON.stringify({ error: "Deployment not found" }), event: "error" });
+        break;
+      }
+
+      // 👇 THIS IS THE FIX: Send if logs OR status has changed
+      if (deployment.logs !== lastSentLogs || deployment.status !== lastSentStatus) {
+        lastSentLogs = deployment.logs || "";
+        lastSentStatus = deployment.status;
+        
+        await stream.writeSSE({
+          data: JSON.stringify({ logs: lastSentLogs, status: deployment.status }),
+          event: "update",
+        });
+      }
+
+      if (deployment.status === "active" || deployment.status === "failed") {
+        await stream.writeSSE({ data: JSON.stringify({ done: true }), event: "done" });
+        break;
+      }
+
+      await stream.sleep(1000);
+    }
+  });
+});
 export default deploymentControllers;
