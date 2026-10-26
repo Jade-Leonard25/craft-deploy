@@ -8,7 +8,6 @@ import db from "../db";
 import { users } from "../schema/schema";
 
 const loginControllers = new Hono();
-
 loginControllers.post(
   "/login",
   zValidator("json", loginSchema),

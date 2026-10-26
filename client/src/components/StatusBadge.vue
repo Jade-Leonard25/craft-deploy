@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-
+import Button from './Button.vue';
 const props = defineProps<{
-  status: 'pending' | 'building' | 'active' | 'failed'
+  status: string
 }>()
 
 const classes = computed(() => {
@@ -17,7 +17,7 @@ const classes = computed(() => {
 </script>
 
 <template>
-  <span :class="['px-2.5 py-1 text-xs font-medium rounded-full border', classes]">
+  <Button :class="['px-2.5 py-1 text-xs font-medium rounded-full border', classes]" variant="ghost">
     {{ status.toUpperCase() }}
-  </span>
+  </Button>
 </template>

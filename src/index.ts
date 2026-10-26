@@ -15,9 +15,12 @@ import { DEPLOYMENTS_DIR } from './paths';
 
 // ---------- API app (everything under /api) ----------
 const app = new Hono().basePath('/api');
-const allowedOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
-  .split(',')
-  .map((o) => o.trim());
+const allowedOrigins = (
+    process.env.CORS_ORIGINS ??
+    'http://localhost:5173,http://localhost:5174','http://localhost:5175'
+)
+    .split(',')
+    .map((origin) => origin.trim());
 app.use('*', logger());
 app.use('*', secureHeaders());
 app.use(

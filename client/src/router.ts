@@ -1,26 +1,27 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import { useAuth } from '@/composables/useAuth'
-
+import { createRouter, createWebHistory } from "vue-router";
+import { useAuth } from "@/composables/useAuth";
+import LoginView from "@/views/LoginView.vue";
+import SignupView from "@/views/SignupView.vue";
+import DeploymentsView from "@/views/DeploymentsView.vue";
+import DeploymentView from "@/views/DeploymentView.vue";
+import GenerateAccount from "./views/Generate.Account.vue";
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes: [
-    { path: '/', redirect: '/deployments' },
-    { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },
-    { path: '/signup', name: 'signup', component: () => import('@/views/SignupView.vue') },
-    { path: '/deployments', name: 'deployments', component: () => import('@/views/DeploymentsView.vue'), meta: { requiresAuth: true } },
-    { path: '/deployments/:id', name: 'deployment', component: () => import('@/views/DeploymentView.vue'), meta: { requiresAuth: true } },
+    { path: "/", redirect: "/generate-account" },
+    {path:"/generate-account",component:GenerateAccount},
+    { path: "/login", component: LoginView },
+    { path: "/signup", component: SignupView },
+    { path: "/deployments", component: DeploymentsView, meta: { requiresAuth: true } },
+    { path: "/deployments/:id", component: DeploymentView, meta: { requiresAuth: true } },
+    { path: "/:pathMatch(.*)*", redirect: "/deployments" },
   ],
-})
+});
 
-router.beforeEach((to, from, next) => {
-  const { token } = useAuth()
-  if (to.meta.requiresAuth && !token.value) {
-    next('/login')
-  } else if ((to.name === 'login' || to.name === 'signup') && token.value) {
-    next('/deployments')
-  } else {
-    next()
-  }
-})
+router.beforeEach((to) => {
+  const { isLoggedIn } = useAuth();
+  if (to.meta.requiresAuth && !isLoggedIn.value) return "/login";
+  if ((to.path === "/login" || to.path === "/signup" || "/generate-account") && isLoggedIn.value) return "/deployments";
+});
 
-export default router
+export default router;

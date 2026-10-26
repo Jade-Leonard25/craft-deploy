@@ -7,45 +7,50 @@ import bcrypt from "bcryptjs";
 
 const signControllers = new Hono();
 
+// Drizzle wraps the real database error in `cause`
+function dbReason(error: any): string {
+  return error?.cause?.message ?? error?.message ?? "Unknown error";
+}
+
 signControllers.post(
-    "/sign-up",
-    zValidator("json", signUpSchema),
-    async (c) => {
-        const input = c.req.valid("json");
+  "/sign-up",
+  zValidator("json", signUpSchema),
+  async (c) => {
+    const input = c.req.valid("json");
 
-        console.log("🔥 1. REQUEST ARRIVED FOR:", input.email);
-
-        try {
-            const salt = await bcrypt.genSalt(10);
-            const passwordHash = await bcrypt.hash(input.password, salt);
-
-            console.log("🔥 2. ATTEMPTING TO CONNECT TO NEON DB...");
-
-            const result = await db.insert(users).values({
-                username: input.email.split("@")[0],
-                email: input.email,
-                passwordHash: passwordHash,
-            }).returning();
-
-            console.log("🔥 3. NEON DB RETURNED:", result);
-
-            return c.json({ success: true, user: result[0] }, 201);
-
-        } catch (error: any) {
-            console.error("🚨 4. NEON DB FAILED COMPLETELY. REASON:", error.message);
-            return c.json({ success: false, message: error.message }, 500);
-        }
-    }
-);
-
-signControllers.get("/users", async (c) => {
     try {
-        const allUsers = await db.select().from(users);
-        return c.json({ success: true, users: allUsers });
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(input.password, salt);
+
+      const [created] = await db
+        .insert(users)
+        .values({
+          username: input.email.split("@")[0],
+          email: input.email,
+          passwordHash,
+        })
+        .returning({ id: users.id, username: users.username, email: users.email });
+
+      return c.json({ success: true, user: created }, 201);
     } catch (error: any) {
-        console.error("🚨 DB FETCH FAILED:", error.message);
-        return c.json({ success: false, error: error.message }, 500);
+      const reason = dbReason(error);
+      console.error("Sign-up failed:", reason);
+
+      if (/UNIQUE constraint failed/i.test(reason)) {
+        return c.json(
+          { success: false, message: "An account with this email already exists. Try logging in." },
+          409
+        );
+      }
+      if (/no such table/i.test(reason)) {
+        return c.json(
+          { success: false, message: "Database table missing. Run: npx drizzle-kit push" },
+          500
+        );
+      }
+      return c.json({ success: false, message: reason }, 500);
     }
-});
+  }
+);
 
 export default signControllers;

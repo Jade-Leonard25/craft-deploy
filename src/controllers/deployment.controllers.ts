@@ -240,4 +240,31 @@ deploymentControllers.get("/:id", async (c) => {
   return c.json({ success: true, data: deployment });
 });
 
+
+// ---------- Delete a deployment (any status except building) ----------
+deploymentControllers.delete("/:id", async (c) => {
+  const { sub } = c.get("jwtPayload");
+  const id = c.req.param("id");
+
+  const [d] = await db
+    .select({ id: deployments.id, status: deployments.status })
+    .from(deployments)
+    .where(and(eq(deployments.id, id), eq(deployments.userId, sub)))
+    .limit(1);
+
+  if (!d) return c.json({ success: false, message: "Deployment not found" }, 404);
+  if (d.status === "building") {
+    return c.json({ success: false, message: "A build is running. Wait for it to finish." }, 409);
+  }
+
+  await db
+    .delete(deployments)
+    .where(and(eq(deployments.id, d.id), eq(deployments.userId, sub)));
+
+  await fs.rm(path.join(DEPLOYMENTS_DIR, d.id), { recursive: true, force: true });
+  await fs.rm(path.join(DEPLOYMENTS_DIR, "_logs", `${d.id}.csv`), { force: true });
+
+  return c.json({ success: true });
+});
+
 export default deploymentControllers;

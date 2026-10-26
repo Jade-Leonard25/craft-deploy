@@ -79,7 +79,7 @@ echo "$ $INSTALL_CMD"
 sh -c "$INSTALL_CMD"
 
 echo "$ $BUILD_CMD"
-sh -c "$BUILD_CMD"
+NODE_ENV=production sh -c "$BUILD_CMD"
 
 if [ ! -d "$OUTPUT_DIR" ]; then
   echo "✖ Output folder '$OUTPUT_DIR' was not created by the build"
@@ -95,7 +95,6 @@ cp -r "$OUTPUT_DIR"/. /out
       '--pids-limit', '512',
       '--user', `${process.getuid?.() ?? 1000}:${process.getgid?.() ?? 1000}`,
       '-e', 'HOME=/tmp',
-      '-e', 'NODE_ENV=production',
       '-e', `INSTALL_CMD=${cfg.installCommand}`,
       '-e', `BUILD_CMD=${cfg.buildCommand}`,
       '-e', `OUTPUT_DIR=${cfg.outputDir}`,

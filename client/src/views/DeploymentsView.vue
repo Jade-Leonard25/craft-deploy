@@ -17,6 +17,7 @@ const deployments = ref<any[]>([])
 const loading = ref(true)
 const isCreating = ref(false)
 const projectName = ref('')
+const repoUrl = ref('')
 const { token } = useAuth()
 const router = useRouter()
 
@@ -44,7 +45,7 @@ const createDeployment = async () => {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token.value}`
       },
-      body: JSON.stringify({ projectName: projectName.value, sourceType: 'github' })
+      body: JSON.stringify({ projectName: projectName.value, sourceType: 'github', repoUrl: repoUrl.value })
     })
     const data = await res.json()
     if (data.success) {
@@ -74,8 +75,9 @@ onMounted(fetchDeployments)
         <div class="flex gap-4 items-end">
           <div class="flex-1">
             <Input v-model="projectName" placeholder="my-awesome-app" />
+            <Input v-model="repoUrl" placeholder="https://github.com/user/repo.git" />
           </div>
-          <Button @click="createDeployment" :disabled="isCreating || !projectName" variant="default">
+          <Button @click="createDeployment" :disabled="isCreating || !projectName || !repoUrl" variant="default">
             {{ isCreating ? 'Deploying...' : 'Deploy' }}
           </Button>
         </div>
