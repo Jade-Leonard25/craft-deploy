@@ -17,7 +17,7 @@ import { DEPLOYMENTS_DIR } from './paths';
 const app = new Hono().basePath('/api');
 const allowedOrigins = (
     process.env.CORS_ORIGINS ??
-    'http://localhost:5173,http://localhost:5174','http://localhost:5175'
+    'http://localhost:5173,http://localhost:5174,http://localhost:5175'
 )
     .split(',')
     .map((origin) => origin.trim());
@@ -27,7 +27,7 @@ app.use(
   '*',
   cors({
     origin: allowedOrigins,
-    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] ,
     allowHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   })

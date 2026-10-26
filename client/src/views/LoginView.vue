@@ -24,7 +24,7 @@ const handleLogin = async () => {
     if (!res.ok) throw new Error(data.message || 'Login failed')
 
     setToken(data.token)
-    router.push('/deployments')
+    router.push('/dashboard')
   } catch (err: any) {
     error.value = err.message
   } finally {

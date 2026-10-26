@@ -1,44 +1,62 @@
+```vue
 <script setup lang="ts">
-const links = [
-  { name: 'Deploy', link: '/deployments' },
-  { name: 'Generate account', link: '/generate-account' },
-  { name: 'Sign Up', link: '/sign-up' },
-  { name: 'Login In', link: '/login' }
-]
+import { ref } from 'vue'
+import { RouterLink } from 'vue-router'
+import Button from './Button.vue'
+defineProps<{
+  links: { name: string; to: string }[]
+  showLogout?: boolean
+}>()
+
+defineEmits<{
+  (e: 'logout'): void
+}>()
+
+const open = ref(false)
 </script>
 
 <template>
-  <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto py-2 px-2">
-    <a href="/" class="flex items-center space-x-3 rtl:space-x-reverse">
-      <span class="self-center text-xl text-heading font-semibold whitespace-nowrap">
-        Deploy Craft
-      </span>
-    </a>
+  <div
+    class="mx-auto flex max-w-screen-xl flex-wrap items-center justify-between px-2 py-2"
+  >
+    <RouterLink to="/" class="text-xl font-semibold whitespace-nowrap">
+      Deploy Craft
+    </RouterLink>
 
-    <button
-      data-collapse-toggle="navbar-dropdown"
+    <Button
       type="button"
-      class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-body rounded-base md:hidden hover:bg-neutral-secondary-soft hover:text-heading focus:outline-none focus:ring-2 focus:ring-neutral-tertiary"
-      aria-controls="navbar-dropdown"
-      aria-expanded="false"
+      class="inline-flex h-10 w-10 items-center justify-center rounded-md text-gray-300 hover:bg-gray-800 md:hidden"
+      :aria-expanded="open"
+      aria-label="Toggle navigation menu"
+      @click="open = !open"
     >
-      <span class="sr-only">Open main menu</span>
-      <svg class="w-6 h-6" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-        <path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M5 7h14M5 12h14M5 17h14" />
-      </svg>
-    </button>
+      ☰
+  </Button>
 
-    <div class="hidden w-full md:block md:w-auto" id="navbar-dropdown">
-      <ul class="flex flex-col font-medium p-4 md:p-0 mt-4 border border-default rounded-base bg-neutral-secondary-soft md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0 md:bg-neutral-primary">
-        <li v-for="item in links" :key="item.link">
-          <a
-            :href="item.link"
-            class="block py-2 px-3 text-heading rounded hover:bg-neutral-tertiary md:hover:bg-transparent md:border-0 md:hover:text-fg-brand md:p-0"
+    <div :class="[open ? 'block' : 'hidden', 'w-full md:block md:w-auto']">
+      <ul class="mt-4 flex flex-col gap-1 md:mt-0 md:flex-row md:items-center md:gap-6">
+        <li v-for="item in links" :key="item.to">
+          <RouterLink
+            :to="item.to"
+            class="block rounded px-3 py-2 text-gray-300 hover:text-white md:p-0"
+            active-class="text-white"
+            @click="open = false"
           >
             {{ item.name }}
-          </a>
+          </RouterLink>
+        </li>
+
+        <li v-if="showLogout">
+          <Button
+            type="button"
+            class="block w-full rounded px-3 py-2 text-left text-red-400 hover:text-red-300 md:w-auto md:p-0"
+            @click="$emit('logout')"
+          >
+            Log out
+        </Button>
         </li>
       </ul>
     </div>
   </div>
 </template>
+```

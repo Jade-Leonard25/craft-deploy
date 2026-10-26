@@ -80,4 +80,5 @@ const startStream = async () => {
   <!-- 👈 Use a plain HTML div here. 
        The width/height and styling are handled by the parent Card in DeploymentView.vue -->
   <div ref="terminalRef" class="w-full h-96 p-4"></div>
+
 </template>

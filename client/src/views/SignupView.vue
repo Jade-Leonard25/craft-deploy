@@ -32,7 +32,7 @@ const handleSignup = async () => {
     const data = await res.json()
     if (!res.ok) throw new Error(data.message || 'Signup failed')
     
-    router.push('/login')
+    router.push('/dashboard')
   } catch (err: any) {
     error.value = err.message
   } finally {
@@ -64,6 +64,12 @@ const handleSignup = async () => {
     </form>
     <p class="text-center text-sm text-gray-500 mt-4">
       Already have an account? <RouterLink to="/login" class="text-blue-400 hover:underline">Sign in</RouterLink>
+    </p>
+    <p class="text-center text-sm text-gray-500 mt-4"> 
+
+      <RouterLink to="/generate-account" class="text-blue-400 hover:underline">
+        You dont want to create, generate one account now!
+      </RouterLink>
     </p>
   </div>
 </template>
