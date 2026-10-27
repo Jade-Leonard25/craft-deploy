@@ -4,7 +4,7 @@ import Card from '@/components/Card.vue';
 import Input from '@/components/Input.vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
-import { CheckCheck ,CheckIcon} from 'lucide-vue-next'
+import {CheckIcon} from 'lucide-vue-next'
 const API_URL = 'http://localhost:4002/api/auth';
 import Button from '@/components/Button.vue';
 const email = ref('');

@@ -17,9 +17,9 @@ let abortController: AbortController
 
 onMounted(() => {
   term = new Terminal({
-    theme: { background: '#0f172a', foreground: '#f8fafc', cursor: '#38bdf8' },
+    theme: { background: '#202420', foreground: '#ebf0eb', cursor: '#40eddf' },
     fontFamily: 'monospace',
-    fontSize: 13,
+    fontSize: 28,
     cursorBlink: true,
     convertEol: true,
     disableStdin: true,

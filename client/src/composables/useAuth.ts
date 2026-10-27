@@ -59,7 +59,7 @@ export function useAuth() {
     });
     if (res.status === 401) {
       logout();
-      window.location.href = "/login";
+      window.location.href = "/app";
     }
     return res;
   }

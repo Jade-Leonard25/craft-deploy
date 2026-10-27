@@ -25,6 +25,7 @@ import Card from '@/components/Card.vue'
 import Button from '@/components/Button.vue'
 import Input from '@/components/Input.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import Avatar from '@/components/Avatar.vue'
 
 interface Deployment {
   id: string
@@ -172,11 +173,7 @@ onMounted(load)
   <div class="min-h-screen bg-gray-950 text-gray-100">
 
     <!-- Mobile overlay -->
-    <div
-      v-if="mobileMenuOpen"
-      class="fixed inset-0 z-40 bg-black/60 md:hidden"
-      @click="closeMobileMenu"
-    />
+    <div v-if="mobileMenuOpen" class="fixed inset-0 z-40 bg-black/60 md:hidden" @click="closeMobileMenu" />
 
     <div class="flex min-h-screen">
 
@@ -186,15 +183,10 @@ onMounted(load)
         :class="[
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full',
           sidebarOpen ? 'md:flex' : 'md:hidden',
-        ]"
-      >
+        ]">
         <!-- Brand -->
         <div class="flex h-16 items-center justify-between border-b border-gray-800 px-5">
-          <RouterLink
-            to="/dashboard"
-            class="flex items-center gap-3"
-            @click="closeMobileMenu"
-          >
+          <RouterLink to="/dashboard" class="flex items-center gap-3" @click="closeMobileMenu">
             <div class="flex size-9 items-center justify-center rounded-xl bg-violet-600">
               <Rocket class="size-5 text-white" />
             </div>
@@ -204,22 +196,16 @@ onMounted(load)
             </span>
           </RouterLink>
 
-          <button
-            type="button"
-            class="rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-white md:hidden"
-            aria-label="Close navigation"
-            @click="closeMobileMenu"
-          >
+          <Button type="button" class="rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-white md:hidden"
+            aria-label="Close navigation" @click="closeMobileMenu">
             <X class="size-5" />
-          </button>
+          </Button>
         </div>
 
         <!-- New project -->
         <div class="p-4">
-          <Button
-            class="w-full justify-center bg-violet-600 text-white hover:bg-violet-500"
-            @click="router.push('/deployments')"
-          >
+          <Button class="w-full justify-center bg-violet-600 text-white hover:bg-violet-500"
+            @click="router.push('/deployments')">
             <Plus class="mr-2 size-4" />
             New project
           </Button>
@@ -231,14 +217,9 @@ onMounted(load)
             Workspace
           </p>
 
-          <RouterLink
-            v-for="item in nav"
-            :key="item.to"
-            :to="item.to"
+          <RouterLink v-for="item in nav" :key="item.to" :to="item.to"
             class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-400 transition hover:bg-gray-900 hover:text-white"
-            active-class="!bg-violet-500/10 !text-violet-300"
-            @click="closeMobileMenu"
-          >
+            active-class="!bg-violet-500/10 !text-violet-300" @click="closeMobileMenu">
             <component :is="item.icon" class="size-5 shrink-0" />
             {{ item.label }}
           </RouterLink>
@@ -247,13 +228,10 @@ onMounted(load)
         <!-- User section -->
         <div class="border-t border-gray-800 p-4">
           <div class="mb-4 flex items-center gap-3 rounded-xl bg-gray-900 p-3">
-            <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-violet-600/20 text-sm font-semibold text-violet-300">
-              {{ user?.email?.charAt(0).toUpperCase() || 'U' }}
-            </div>
-
+            <Avatar :fallback="user?.email || 'User'" :alt="user?.email || 'User'" size="default" />
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-medium text-white">
-                {{ user?.email || 'Signed in' }}
+                {{ user?.email }}
               </p>
               <p class="mt-1 text-xs text-gray-500">
                 Account
@@ -261,11 +239,8 @@ onMounted(load)
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            class="w-full justify-start text-gray-400 hover:bg-red-500/10 hover:text-red-400"
-            @click="onLogout"
-          >
+          <Button variant="ghost" class="w-full justify-start text-gray-400 hover:bg-red-500/10 hover:text-red-400"
+            @click="onLogout">
             <LogOut class="mr-2 size-4" />
             Log out
           </Button>
@@ -276,25 +251,20 @@ onMounted(load)
       <div class="flex min-w-0 flex-1 flex-col">
 
         <!-- Header -->
-        <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-800 bg-gray-950/90 px-4 backdrop-blur-md sm:px-6 lg:px-8">
+        <header
+          class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-800 bg-gray-950/90 px-4 backdrop-blur-md sm:px-6 lg:px-8">
           <div class="flex items-center gap-3">
-            <button
-              type="button"
+            <Button type="button"
               class="rounded-lg border border-gray-800 p-2 text-gray-400 transition hover:bg-gray-900 hover:text-white md:hidden"
-              aria-label="Open navigation"
-              @click="mobileMenuOpen = true"
-            >
+              aria-label="Open navigation" @click="mobileMenuOpen = true">
               <Menu class="size-5" />
-            </button>
+            </Button>
 
-            <button
-              type="button"
+            <Button type="button"
               class="hidden rounded-lg border border-gray-800 p-2 text-gray-400 transition hover:bg-gray-900 hover:text-white md:block"
-              :aria-label="sidebarOpen ? 'Hide sidebar' : 'Show sidebar'"
-              @click="sidebarOpen = !sidebarOpen"
-            >
+              :aria-label="sidebarOpen ? 'Hide sidebar' : 'Show sidebar'" @click="sidebarOpen = !sidebarOpen">
               <Menu class="size-5" />
-            </button>
+            </Button>
 
             <div>
               <h1 class="text-sm font-semibold text-white sm:text-base">
@@ -306,16 +276,9 @@ onMounted(load)
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            class="border-gray-800 text-gray-300 hover:bg-gray-900 hover:text-white"
-            :disabled="loading"
-            @click="load"
-          >
-            <RefreshCw
-              class="mr-2 size-4"
-              :class="{ 'animate-spin': loading }"
-            />
+          <Button variant="outline" class="border-gray-800 text-gray-300 hover:bg-gray-900 hover:text-white"
+            :disabled="loading" @click="load">
+            <RefreshCw class="mr-2 size-4" :class="{ 'animate-spin': loading }" />
             <span class="hidden sm:inline">Refresh</span>
           </Button>
         </header>
@@ -340,44 +303,31 @@ onMounted(load)
               </p>
             </div>
 
-            <Button
-              class="bg-violet-600 text-white hover:bg-violet-500"
-              @click="router.push('/deployments')"
-            >
+            <Button class="bg-violet-600 text-white hover:bg-violet-500" @click="router.push('/deployments')">
               <Plus class="mr-2 size-4" />
               New deployment
             </Button>
           </section>
 
           <!-- Error -->
-          <div
-            v-if="errorMessage"
-            role="alert"
-            class="flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300"
-          >
+          <div v-if="errorMessage" role="alert"
+            class="flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
             <AlertCircle class="mt-0.5 size-5 shrink-0" />
 
             <p class="flex-1">
               {{ errorMessage }}
             </p>
 
-            <button
-              type="button"
-              class="text-red-300 hover:text-white"
-              aria-label="Dismiss error"
-              @click="errorMessage = ''"
-            >
+            <Button type="button" class="text-red-300 hover:text-white" aria-label="Dismiss error"
+              @click="errorMessage = ''">
               <X class="size-4" />
-            </button>
+            </Button>
           </div>
 
           <!-- Statistics -->
           <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Card
-              v-for="stat in stats"
-              :key="stat.label"
-              class="border border-gray-800 bg-gray-900 p-5 transition hover:border-gray-700"
-            >
+            <Card v-for="stat in stats" :key="stat.label"
+              class="border border-gray-800 bg-gray-900 p-5 transition hover:border-gray-700">
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <p class="text-sm font-medium text-gray-400">
@@ -389,15 +339,8 @@ onMounted(load)
                   </p>
                 </div>
 
-                <div
-                  class="flex size-11 items-center justify-center rounded-xl"
-                  :class="stat.background"
-                >
-                  <component
-                    :is="stat.icon"
-                    class="size-5"
-                    :class="stat.color"
-                  />
+                <div class="flex size-11 items-center justify-center rounded-xl" :class="stat.background">
+                  <component :is="stat.icon" class="size-5" :class="stat.color" />
                 </div>
               </div>
 
@@ -410,7 +353,8 @@ onMounted(load)
           <!-- Projects -->
           <section>
             <Card class="overflow-hidden border border-gray-800 bg-gray-900">
-              <div class="flex flex-col justify-between gap-4 border-b border-gray-800 p-5 sm:flex-row sm:items-center sm:px-6">
+              <div
+                class="flex flex-col justify-between gap-4 border-b border-gray-800 p-5 sm:flex-row sm:items-center sm:px-6">
                 <div>
                   <h3 class="text-base font-semibold text-white">
                     Your projects
@@ -425,22 +369,14 @@ onMounted(load)
                 <div class="relative w-full sm:max-w-xs">
                   <Search class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-500" />
 
-                  <Input
-                    v-model="search"
-                    placeholder="Search projects..."
-                    aria-label="Search projects"
-                    class="w-full border-gray-800 bg-gray-950 pl-9 text-white placeholder:text-gray-600"
-                  />
+                  <Input v-model="search" placeholder="Search projects..." aria-label="Search projects"
+                    class="w-full border-gray-800 bg-gray-950 pl-9 text-white placeholder:text-gray-600" />
                 </div>
               </div>
 
               <!-- Loading -->
               <div v-if="loading" class="space-y-4 p-6">
-                <div
-                  v-for="n in 4"
-                  :key="n"
-                  class="flex animate-pulse items-center gap-4"
-                >
+                <div v-for="n in 4" :key="n" class="flex animate-pulse items-center gap-4">
                   <div class="size-10 rounded-lg bg-gray-800" />
                   <div class="flex-1 space-y-2">
                     <div class="h-4 w-36 rounded bg-gray-800" />
@@ -451,11 +387,9 @@ onMounted(load)
               </div>
 
               <!-- Empty state -->
-              <div
-                v-else-if="!filtered.length"
-                class="px-6 py-14 text-center"
-              >
-                <div class="mx-auto flex size-14 items-center justify-center rounded-2xl border border-gray-800 bg-gray-950">
+              <div v-else-if="!filtered.length" class="px-6 py-14 text-center">
+                <div
+                  class="mx-auto flex size-14 items-center justify-center rounded-2xl border border-gray-800 bg-gray-950">
                   <FolderGit2 class="size-7 text-gray-500" />
                 </div>
 
@@ -471,21 +405,13 @@ onMounted(load)
                   }}
                 </p>
 
-                <Button
-                  v-if="!search"
-                  class="mt-5 bg-violet-600 text-white hover:bg-violet-500"
-                  @click="router.push('/deployments')"
-                >
+                <Button v-if="!search" class="mt-5 bg-violet-600 text-white hover:bg-violet-500"
+                  @click="router.push('/deployments')">
                   <Plus class="mr-2 size-4" />
                   Create your first project
                 </Button>
 
-                <Button
-                  v-else
-                  variant="outline"
-                  class="mt-5 border-gray-800 text-gray-300"
-                  @click="search = ''"
-                >
+                <Button v-else variant="outline" class="mt-5 border-gray-800 text-gray-300" @click="search = ''">
                   Clear search
                 </Button>
               </div>
@@ -511,17 +437,11 @@ onMounted(load)
                   </thead>
 
                   <tbody class="divide-y divide-gray-800/70">
-                    <tr
-                      v-for="deployment in filtered"
-                      :key="deployment.id"
-                      class="transition hover:bg-gray-800/30"
-                    >
+                    <tr v-for="deployment in filtered" :key="deployment.id" class="transition hover:bg-gray-800/30">
                       <td class="px-6 py-4">
-                        <RouterLink
-                          :to="`/deployments/${deployment.id}`"
-                          class="group inline-flex items-center gap-3"
-                        >
-                          <div class="flex size-10 items-center justify-center rounded-lg border border-gray-800 bg-gray-950">
+                        <RouterLink :to="`/deployments/${deployment.id}`" class="group inline-flex items-center gap-3">
+                          <div
+                            class="flex size-10 items-center justify-center rounded-lg border border-gray-800 bg-gray-950">
                             <FolderGit2 class="size-5 text-gray-400" />
                           </div>
 
@@ -546,10 +466,8 @@ onMounted(load)
                       </td>
 
                       <td class="px-6 py-4 text-right">
-                        <RouterLink
-                          :to="`/deployments/${deployment.id}`"
-                          class="inline-flex items-center gap-1 text-gray-400 transition hover:text-violet-300"
-                        >
+                        <RouterLink :to="`/deployments/${deployment.id}`"
+                          class="inline-flex items-center gap-1 text-gray-400 transition hover:text-violet-300">
                           View
                           <ArrowUpRight class="size-4" />
                         </RouterLink>
@@ -560,10 +478,8 @@ onMounted(load)
               </div>
 
               <!-- Table footer -->
-              <div
-                v-if="!loading && filtered.length"
-                class="flex flex-col justify-between gap-2 border-t border-gray-800 px-5 py-4 text-xs text-gray-500 sm:flex-row sm:items-center sm:px-6"
-              >
+              <div v-if="!loading && filtered.length"
+                class="flex flex-col justify-between gap-2 border-t border-gray-800 px-5 py-4 text-xs text-gray-500 sm:flex-row sm:items-center sm:px-6">
                 <span>
                   Showing {{ filtered.length }} of {{ deployments.length }} projects
                 </span>
@@ -577,7 +493,8 @@ onMounted(load)
           </section>
 
           <!-- Footer -->
-          <footer class="flex flex-col justify-between gap-2 border-t border-gray-800 pt-5 text-xs text-gray-500 sm:flex-row">
+          <footer
+            class="flex flex-col justify-between gap-2 border-t border-gray-800 pt-5 text-xs text-gray-500 sm:flex-row">
             <p>DeployCraft · Deployment workspace</p>
 
             <p>
