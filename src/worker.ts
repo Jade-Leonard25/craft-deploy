@@ -1,5 +1,4 @@
 import 'dotenv/config';
-
 import { simpleGit } from 'simple-git';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
